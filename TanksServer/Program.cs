@@ -1,14 +1,10 @@
-﻿
-using System;
+﻿using System;
 using System.Net.Sockets;
 using System.Text;
 using System.IO;
-using System.Linq;
 using System.Xml.Linq;
 using System.Collections.Generic;
-using System.Net.Sockets;
 using System.Net;
-using System.Text;
 using System.Threading;
 
 namespace ChatServer
@@ -47,10 +43,10 @@ namespace ChatServer
             Stream = tcpClient.GetStream();
             Id  = Guid.NewGuid().ToString();
             
-            Byte[] data = Encoding.Unicode.GetBytes(new XElement("Id",a));
+            Byte[] data = Encoding.Unicode.GetBytes(new XElement("Id",Id).ToString());
 
             Stream.Write(data, 0,data.Length);
-            server.Broadcast(new XElement("Player", new XAttribute("Action", "Join"), new XAttribute("Id", Id )).ToString());
+            server.Broadcast(new XElement("Player", new XAttribute("Action", "Join"), new XAttribute("Id", Id )).ToString(), Id);
             while (true)
                 try
                 {
@@ -62,7 +58,7 @@ namespace ChatServer
                 catch
                 {
                     server.Clients.Remove(this);
-                    server.Broadcast(new XElement("Player", new XAttribute("Action", "Leave"), new XAttribute("Id", Id)).ToString());
+                    server.Broadcast(new XElement("Player", new XAttribute("Action", "Leave"), new XAttribute("Id", Id)).ToString(), Id);
 
                     Dispose();
                     break;
