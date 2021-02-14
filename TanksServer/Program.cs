@@ -48,19 +48,17 @@ namespace ChatServer
 
             XElement players = new XElement("Players");
             foreach (var client in server.Clients)
-                if (client.Id != Id)
-                    players.Add("Player", new XAttribute("Id", client.Id));
+                players.Add("Player", new XAttribute("Id", client.Id));
             data = Encoding.Unicode.GetBytes(players.ToString());
             Stream.Write(data, 0, data.Length);
 
+            server.Clients.Add(this);
             server.Broadcast(new XElement("Player", new XAttribute("Action", "Join"), new XAttribute("Id", Id)).ToString(), Id);
             while (true)
                 try
                 {
                     string message = GetMessage();
                     server.Broadcast(message, UserName);
-
-
                 }
                 catch
                 {
