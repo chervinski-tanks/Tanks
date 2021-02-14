@@ -21,8 +21,8 @@ namespace Tanks
 		public Form1()
 		{
 			InitializeComponent();
-            TcpClient client = new TcpClient(new IPEndPoint(IPAddress.Loopback, 8888));
-			Tank tank = new Tank(this);
+            //TcpClient client = new TcpClient(new IPEndPoint(IPAddress.Loopback, 8888));
+			tanks.Add("", new Tank(this));
 		}
 	}
     class Tank
