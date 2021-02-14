@@ -84,7 +84,14 @@ namespace Tanks
                     break;
                 default: return;
             }
-            
+            if (point.X + Picture.Width > Form.ClientSize.Width)
+                point = new Point(Form.ClientSize.Width - Picture.Width, point.Y);
+            if (point.X < 0) 
+            point = new Point(0, point.Y);
+            if (point.Y + Picture.Height > Form.ClientSize.Height)
+                point = new Point(point.X,Form.ClientSize.Height - Picture.Height);
+            if (point.Y < 0) 
+            point = new Point(point.X, 0);
             Picture.Location = point;
         }
     }
