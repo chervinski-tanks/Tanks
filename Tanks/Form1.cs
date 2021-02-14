@@ -84,7 +84,7 @@ namespace Tanks
                     break;
                 default: return;
             }
-            if
+            
             Picture.Location = point;
         }
     }
