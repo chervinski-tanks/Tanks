@@ -9,21 +9,21 @@ using System.Threading;
 
 namespace ChatServer
 {
-	class Program
-	{
-		static void Main(string[] args)
-		{
-			try
-			{
-				using (Server server = new Server(8888))
-					server.Start();
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine(e.Message);
-			}
-		}
-	}
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            try
+            {
+                using (Server server = new Server(8888))
+                    server.Start();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
+    }
     class Client : IDisposable
     {
         public string Id { get; private set; }
@@ -41,19 +41,26 @@ namespace ChatServer
         public void Process()
         {
             Stream = tcpClient.GetStream();
-            Id  = Guid.NewGuid().ToString();
-            
-            Byte[] data = Encoding.Unicode.GetBytes(new XElement("Id",Id).ToString());
+            Id = Guid.NewGuid().ToString();
 
-            Stream.Write(data, 0,data.Length);
-            server.Broadcast(new XElement("Player", new XAttribute("Action", "Join"), new XAttribute("Id", Id )).ToString(), Id);
+            Byte[] data = Encoding.Unicode.GetBytes(new XElement("Id", Id).ToString());
+            Stream.Write(data, 0, data.Length);
+
+            XElement players = new XElement("Players");
+            foreach (var client in server.Clients)
+                if (client.Id != Id)
+                    players.Add("Player", new XAttribute("Id", client.Id));
+            data = Encoding.Unicode.GetBytes(players.ToString());
+            Stream.Write(data, 0, data.Length);
+
+            server.Broadcast(new XElement("Player", new XAttribute("Action", "Join"), new XAttribute("Id", Id)).ToString(), Id);
             while (true)
                 try
                 {
-                    string message = GetMessage();                      
-                    server.Broadcast(message, UserName);  
-                    
-                
+                    string message = GetMessage();
+                    server.Broadcast(message, UserName);
+
+
                 }
                 catch
                 {
@@ -111,7 +118,7 @@ namespace ChatServer
                 if (client.UserName != name)
                     client.Stream.Write(data, 0, data.Length);
         }
-        
+
         public void Dispose()
         {
             listener.Stop();
