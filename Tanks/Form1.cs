@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -13,9 +15,13 @@ namespace Tanks
 {
 	public partial class Form1 : Form
 	{
+        Dictionary<string, Tank> tanks = new Dictionary<string, Tank>();
+        TcpClient client { get; set; }
+        NetworkStream Stream { get; set; }
 		public Form1()
 		{
 			InitializeComponent();
+            TcpClient client = new TcpClient(new IPEndPoint(IPAddress.Loopback, 8888));
 			Tank tank = new Tank(this);
 		}
 	}
@@ -23,6 +29,7 @@ namespace Tanks
     {
         private int direction;
 
+        public NetworkStream Stream { get; set; }
         public PictureBox Picture { get; set; }
         public Form1 Form { get; set; }
         public int Speed { get; set; }
