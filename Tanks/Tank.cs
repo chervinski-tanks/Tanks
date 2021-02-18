@@ -13,6 +13,7 @@ namespace Tanks
 		public string Id { get; set; }
 		public int Speed { get; set; }
 		public PictureBox Picture { get; set; }
+		private Timer moveTimer;
 		private Form form;
 		private List<Tank> tanks;
 		private NetworkStream stream;
@@ -35,8 +36,10 @@ namespace Tanks
 		}
 		public Tank(string id, Form form, List<Tank> tanks, NetworkStream stream = null)
 		{
-			Speed = 7;
+			Speed = 2;
 			Id = id;
+			moveTimer = new Timer() { Interval = 1 };
+			moveTimer.Tick += Move_Tick;
 			this.form = form;
 			this.tanks = tanks;
 			form.Controls.Add(Picture = new PictureBox() {
@@ -49,33 +52,21 @@ namespace Tanks
 			{
 				this.stream = stream;
 				form.KeyDown += Form_KeyDown;
+				form.KeyUp += Form_KeyUp; ;
 			}
 		}
-		public void Form_KeyDown(object sender, KeyEventArgs e)
+		private void Move_Tick(object sender, EventArgs e)
 		{
-			Point point;
-			switch (e.KeyCode)
+			Point point = Point.Empty;
+			switch (Direction)
 			{
-				case Keys.Up:
-					Direction = 0;
-					point = new Point(Picture.Location.X, Picture.Location.Y - Speed);
-					break;
-				case Keys.Right:
-					Direction = 1;
-					point = new Point(Picture.Location.X + Speed, Picture.Location.Y);
-					break;
-				case Keys.Down:
-					Direction = 2;
-					point = new Point(Picture.Location.X, Picture.Location.Y + Speed);
-					break;
-				case Keys.Left:
-					Direction = 3;
-					point = new Point(Picture.Location.X - Speed, Picture.Location.Y);
-					break;
-				default: return;
+				case 0: point = new Point(Picture.Location.X, Picture.Location.Y - Speed); break;
+				case 1: point = new Point(Picture.Location.X + Speed, Picture.Location.Y); break;
+				case 2: point = new Point(Picture.Location.X, Picture.Location.Y + Speed); break;
+				case 3: point = new Point(Picture.Location.X - Speed, Picture.Location.Y); break;
 			}
 
-			bool found = false;
+			bool found = false; // intersect
 			foreach (Tank tank in tanks)
 				if (point.X <= tank.Picture.Location.X + tank.Picture.Width && point.X + Picture.Width >= tank.Picture.Location.X &&
 					point.Y <= tank.Picture.Location.Y + tank.Picture.Height && point.Y + Picture.Height >= tank.Picture.Location.Y && tank != this)
@@ -90,6 +81,7 @@ namespace Tanks
 							case 3: point = new Point(tank.Picture.Location.X + tank.Picture.Width + 1, point.Y); break;
 						}
 				}
+
 			if (!found)
 			{
 				spawned = true;
@@ -115,6 +107,27 @@ namespace Tanks
 					new XAttribute("Direction", Direction)).ToString());
 				stream.Write(data, 0, data.Length);
 			}
+		}
+		private void Form_KeyUp(object sender, KeyEventArgs e)
+		{
+			if (moveTimer.Enabled && (
+				e.KeyCode == Keys.Up && Direction == 0 ||
+				e.KeyCode == Keys.Right && Direction == 1 ||
+				e.KeyCode == Keys.Down && Direction == 2 ||
+				e.KeyCode == Keys.Left && Direction == 3))
+				moveTimer.Stop();
+		}
+		public void Form_KeyDown(object sender, KeyEventArgs e)
+		{
+			switch (e.KeyCode)
+			{
+				case Keys.Up: Direction = 0; break;
+				case Keys.Right: Direction = 1; break;
+				case Keys.Down: Direction = 2; break;
+				case Keys.Left: Direction = 3; break;
+				default: return;
+			}
+			moveTimer.Start();
 		}
 		public void Dispose()
 		{
