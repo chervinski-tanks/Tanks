@@ -11,14 +11,15 @@ namespace Tanks
 	class Tank : IDisposable
 	{
 		public string Id { get; set; }
-		public int Speed { get; set; }
+		public int Speed { get; set; } = 4;
 		public PictureBox Picture { get; set; }
-		private Timer moveTimer;
+		private Bullet bullet;
 		private Form form;
 		private List<Tank> tanks;
 		private NetworkStream stream;
+		private Timer moveTimer, killTimer;
 		private bool spawned;
-		private int direction;
+		private int direction, nKillFlashes = 20;
 		public int Direction
 		{
 			get => direction;
@@ -36,24 +37,37 @@ namespace Tanks
 		}
 		public Tank(string id, Form form, List<Tank> tanks, NetworkStream stream = null)
 		{
-			Speed = 2;
 			Id = id;
-			moveTimer = new Timer() { Interval = 1 };
-			moveTimer.Tick += Move_Tick;
 			this.form = form;
 			this.tanks = tanks;
+
 			form.Controls.Add(Picture = new PictureBox() {
 				Image = Properties.Resources.Tank,
 				SizeMode = PictureBoxSizeMode.Zoom,
 				Size = new Size(50, 50),
 				BackColor = Color.Transparent
 			});
+
 			if (stream != null)
 			{
 				this.stream = stream;
+				moveTimer = new Timer() { Interval = 25 };
+				moveTimer.Tick += Move_Tick;
 				form.KeyDown += Form_KeyDown;
 				form.KeyUp += Form_KeyUp; ;
 			}
+
+			killTimer = new Timer() { Interval = 200 };
+			killTimer.Tick += (s, e) => {
+				if (nKillFlashes-- == 0)
+				{
+					(s as Timer).Stop();
+					Picture.Show();
+					nKillFlashes = 20;
+					Speed = 4;
+				}
+				else Picture.Visible = !Picture.Visible;
+			};
 		}
 		private void Move_Tick(object sender, EventArgs e)
 		{
@@ -97,16 +111,30 @@ namespace Tanks
 			}
 			Picture.Location = point;
 
-			if (stream != null)
+			byte[] data = Encoding.Unicode.GetBytes(new XElement("Player",
+				new XAttribute("Id", Id),
+				new XAttribute("Action", "Move"),
+				new XAttribute("X", point.X),
+				new XAttribute("Y", point.Y),
+				new XAttribute("Direction", Direction)).ToString());
+			stream.Write(data, 0, data.Length);
+		}
+		private void Form_KeyDown(object sender, KeyEventArgs e)
+		{
+			switch (e.KeyCode)
 			{
-				byte[] data = Encoding.Unicode.GetBytes(new XElement("Player",
-					new XAttribute("Id", Id),
-					new XAttribute("Action", "Move"),
-					new XAttribute("X", point.X),
-					new XAttribute("Y", point.Y),
-					new XAttribute("Direction", Direction)).ToString());
-				stream.Write(data, 0, data.Length);
+				case Keys.Up: Direction = 0; break;
+				case Keys.Right: Direction = 1; break;
+				case Keys.Down: Direction = 2; break;
+				case Keys.Left: Direction = 3; break;
+				case Keys.Space:
+					byte[] data = Encoding.Unicode.GetBytes(new XElement("Player", new XAttribute("Id", Id), new XAttribute("Action", "Shoot")).ToString());
+					stream.Write(data, 0, data.Length);
+					Shoot();
+					return;
+				default: return;
 			}
+			moveTimer.Start();
 		}
 		private void Form_KeyUp(object sender, KeyEventArgs e)
 		{
@@ -117,23 +145,28 @@ namespace Tanks
 				e.KeyCode == Keys.Left && Direction == 3))
 				moveTimer.Stop();
 		}
-		public void Form_KeyDown(object sender, KeyEventArgs e)
+		public void Shoot()
 		{
-			switch (e.KeyCode)
+			if (bullet == null || bullet.IsDisposed)
+				bullet = new Bullet(form, this, tanks);
+		}
+		public void Kill()
+		{
+			if (!killTimer.Enabled)
 			{
-				case Keys.Up: Direction = 0; break;
-				case Keys.Right: Direction = 1; break;
-				case Keys.Down: Direction = 2; break;
-				case Keys.Left: Direction = 3; break;
-				default: return;
+				Speed = 2;
+				killTimer.Start();
 			}
-			moveTimer.Start();
+			else nKillFlashes = 20;
 		}
 		public void Dispose()
 		{
-			form.Controls.Remove(Picture);
 			if (stream != null)
+			{
+				moveTimer.Stop();
 				form.KeyDown -= Form_KeyDown;
+			}
+			form.Controls.Remove(Picture);
 		}
 	}
 }

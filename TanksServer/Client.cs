@@ -25,15 +25,18 @@ namespace ChatServer
 			Stream = tcpClient.GetStream();
 			tank = new Tank();
 
+			// send his ID
 			byte[] data = Encoding.Unicode.GetBytes(new XElement("Id", id = Guid.NewGuid().ToString()).ToString());
 			Stream.Write(data, 0, data.Length);
 
+			// and other palyers' ID
 			XElement players = new XElement("Players");
 			foreach (var client in server.Clients)
 				players.Add(new XElement("Id", client.id));
 			data = Encoding.Unicode.GetBytes(players.ToString());
 			Stream.Write(data, 0, data.Length);
 
+			// and move all players to their real locations
 			foreach (var client in server.Clients)
 			{
 				data = Encoding.Unicode.GetBytes(new XElement("Player",
@@ -52,9 +55,12 @@ namespace ChatServer
 				{
 					string message = GetMessage();
 					XElement x = XElement.Parse(message);
-					tank.Direction = int.Parse(x.Attribute("Direction").Value);
-					tank.X = int.Parse(x.Attribute("X").Value);
-					tank.Y = int.Parse(x.Attribute("Y").Value);
+					if (x.Attribute("Action").Value == "Move")
+					{
+						tank.Direction = int.Parse(x.Attribute("Direction").Value);
+						tank.X = int.Parse(x.Attribute("X").Value);
+						tank.Y = int.Parse(x.Attribute("Y").Value);
+					}
 					server.Broadcast(message, this);
 				}
 				catch
